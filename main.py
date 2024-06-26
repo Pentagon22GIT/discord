@@ -1,6 +1,7 @@
 import discord
 import os
 from supabase import create_client, Client
+from keep_alive import keep_alive
 
 # Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
@@ -114,5 +115,7 @@ intents.presences = True
 client = MyClient(intents=intents)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+keep_alive()
 
 client.run(TOKEN)
