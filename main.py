@@ -1,12 +1,12 @@
 import discord
 import os
-from supabase import create_client
+from supabase import create_client, Client
 from keep_alive import keep_alive
 
 # Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
-supabase = create_client(supabase_url, supabase_key)
+supabase: Client = create_client(supabase_url, supabase_key)
 
 
 class MyClient(discord.Client):
@@ -15,30 +15,34 @@ class MyClient(discord.Client):
 
     async def on_message(self, message):
         print(f"送信: {message.author}: {message.content}")
+
+        # Bot自身のメッセージは無視する
         if message.author == self.user:
             return
 
+        # メッセージの内容を比較する
         if message.content == "Hello":
             await message.channel.send("Hello!")
+            print("move1")
 
-        if message.content == "Get":
+        elif message.content == "Get":
+            print("move2")
             await self.get_data(message)
 
     async def get_data(self, message):
+        print("move3")
         try:
-            query = supabase.from_("test").select("date, name, number_of_people")
-            response = query.execute()
+            response = supabase.table("test").select("*").execute()
 
-            # Wait for the response to complete
-            async with response as _:
-                if response.error or not response.data:
-                    await message.channel.send("データがありません！")
-                else:
-                    data_str = "\n".join(
-                        f"{row['date']} - {row['name']} - {row['number_of_people']}"
-                        for row in response.data
-                    )
-                    await message.channel.send(f"取得したデータ:\n{data_str}")
+            data = response.data
+            if not data:
+                await message.channel.send("データがありません！")
+            else:
+                data_str = "\n".join(
+                    f"{row['date']} - {row['name']} - {row['number_of_people']}"
+                    for row in data
+                )
+                await message.channel.send(f"取得したデータ:\n{data_str}")
 
         except Exception as e:
             await message.channel.send(
