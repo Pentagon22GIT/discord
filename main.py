@@ -27,16 +27,18 @@ class MyClient(discord.Client):
     async def get_data(self, message):
         try:
             query = supabase.from_("test").select("date, name, number_of_people")
-            response = await query.execute()
+            response = query.execute()
 
-            if response.error or not response.data:
-                await message.channel.send("データがありません！")
-            else:
-                data_str = "\n".join(
-                    f"{row['date']} - {row['name']} - {row['number_of_people']}"
-                    for row in response.data
-                )
-                await message.channel.send(f"取得したデータ:\n{data_str}")
+            # Wait for the response to complete
+            async with response as _:
+                if response.error or not response.data:
+                    await message.channel.send("データがありません！")
+                else:
+                    data_str = "\n".join(
+                        f"{row['date']} - {row['name']} - {row['number_of_people']}"
+                        for row in response.data
+                    )
+                    await message.channel.send(f"取得したデータ:\n{data_str}")
 
         except Exception as e:
             await message.channel.send(
