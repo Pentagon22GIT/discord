@@ -12,8 +12,13 @@ client = discord.Client(intents=discord.Intents.default())
 
 
 def get_data():
-    response = supabase.table("test").select("*").execute()
-    return response.data
+    try:
+        response = supabase.table("your_table_name").select("*").execute()
+        print(response.data)  # 取得したデータをログに出力
+        return response.data
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return []
 
 
 @client.event
@@ -24,11 +29,17 @@ async def on_ready():
 @client.event
 async def on_message(message):
     if message.content.startswith("!data"):
+        print(
+            "!dataコマンドがトリガーされました"
+        )  # コマンドがトリガーされたことをログに出力
         data = get_data()
-        response = ""
-        for row in data:
-            response += f"日付け: {row['date']}, 名前: {row['name']}, 人数: {row['number_of_people']}\n"
-        await message.channel.send(response)
+        if not data:
+            await message.channel.send("データを取得できませんでした。")
+        else:
+            response = ""
+            for row in data:
+                response += f"日付け: {row['date']}, 名前: {row['name']}, 人数: {row['number_of_people']}\n"
+            await message.channel.send(response)
 
 
 TOKEN = os.getenv("DISCORD_TOKEN")
