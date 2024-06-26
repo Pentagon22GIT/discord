@@ -2,6 +2,7 @@ import discord
 import os
 import asyncio
 from supabase import create_client
+from keep_alive import keep_alive
 
 # Initialize Supabase client
 supabase_url = "SUPABASE_URL"
@@ -51,5 +52,7 @@ intents.message_content = True
 client = MyClient(intents=intents)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+keep_alive()
 
 client.run(TOKEN)
