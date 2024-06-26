@@ -12,7 +12,7 @@ client = discord.Client(intents=discord.Intents.default())
 
 
 def get_data():
-    response = supabase.table("your_table_name").select("*").execute()
+    response = supabase.table("test").select("*").execute()
     return response.data
 
 
