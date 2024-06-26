@@ -1,6 +1,5 @@
 import discord
 import os
-import asyncio
 from supabase import create_client
 from keep_alive import keep_alive
 
