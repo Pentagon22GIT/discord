@@ -4,8 +4,8 @@ from supabase import create_client
 from keep_alive import keep_alive
 
 # Initialize Supabase client
-supabase_url = "SUPABASE_URL"
-supabase_key = "SUPABASE_KEY"
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
 
 
@@ -26,7 +26,6 @@ class MyClient(discord.Client):
 
     async def get_data(self, message):
         try:
-            # Query Supabase table 'test' for date, name, number_of_people
             query = supabase.from_("test").select("date, name, number_of_people")
             response = await query.execute()
 
