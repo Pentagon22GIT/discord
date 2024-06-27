@@ -53,11 +53,12 @@ async def setup(interaction: discord.Interaction):
 
 @client.tree.command(name="get", description="Supabaseからデータを取得します")
 async def get(interaction: discord.Interaction):
+    await interaction.response.defer()  # 一時的な応答を送信してインタラクションを保持する
     try:
         response = supabase.table("test").select("*").execute()
         data = response.data
         if not data:
-            await interaction.response.send_message("データがありません！")
+            await interaction.followup.send("データがありません！")
         else:
             embed = discord.Embed(
                 title="現在の状況",
@@ -76,7 +77,7 @@ async def get(interaction: discord.Interaction):
             embed.set_footer(
                 text="現在時刻での状況です",  # フッターには開発者の情報でも入れてみる
             )
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
 
     except Exception as e:
         await interaction.followup.send(
