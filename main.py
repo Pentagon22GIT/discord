@@ -13,7 +13,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.presences = True
 
-
 class MyClient(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="/", intents=intents)
@@ -21,15 +20,12 @@ class MyClient(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
 
-
 client = MyClient()
-
 
 @client.event
 async def on_ready():
     await client.change_presence(activity=discord.Game(name="Supabaseに接続中"))
     print(f"ログインしました: {client.user}")
-
 
 @client.tree.command(name="setup", description="使い方の説明です")
 async def setup(interaction: discord.Interaction):
@@ -50,10 +46,9 @@ async def setup(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed)
 
-
 @client.tree.command(name="get", description="Supabaseからデータを取得します")
 async def get(interaction: discord.Interaction):
-    await interaction.response.defer()  # 一時的な応答を送信してインタラクションを保持する
+    await interaction.response.defer()  # インタラクションを一時保留
     try:
         response = supabase.table("test").select("*").execute()
         data = response.data
@@ -84,7 +79,6 @@ async def get(interaction: discord.Interaction):
             f"データの取得中にエラーが発生しました: {str(e)}"
         )
 
-
 @client.tree.command(name="test", description="テスト機能を表示します")
 async def test(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -94,7 +88,6 @@ async def test(interaction: discord.Interaction):
         url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
     )
     await interaction.response.send_message(embed=embed)
-
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
