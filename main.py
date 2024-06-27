@@ -79,7 +79,7 @@ async def get(interaction: discord.Interaction):
             await interaction.response.send_message(embed=embed)
 
     except Exception as e:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"データの取得中にエラーが発生しました: {str(e)}"
         )
 
