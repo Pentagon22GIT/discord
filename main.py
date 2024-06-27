@@ -68,8 +68,8 @@ async def get(interaction: discord.Interaction):
 
             for row in data:
                 embed.add_field(
-                    name=row["date"],
-                    value=f"{row['name']} - {row['number_of_people']}",
+                    name=row["name"],
+                    value=f"{row['condition']}",
                     inline=False,
                 )
 
