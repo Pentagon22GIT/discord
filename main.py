@@ -108,9 +108,9 @@ async def insert(interaction: discord.Interaction, name: str, content: str):
         response = (
             supabase.table("chat").insert({"name": name, "content": content}).execute()
         )
-        if response.status_code != 201:
+        if response.error:
             await interaction.followup.send(
-                f"①データの挿入中にエラーが発生しました: {response.json()}"
+                f"データの挿入中にエラーが発生しました: {response.error.message}"
             )
         else:
             embed = discord.Embed(
@@ -125,7 +125,7 @@ async def insert(interaction: discord.Interaction, name: str, content: str):
             await interaction.followup.send(embed=embed)
     except Exception as e:
         await interaction.followup.send(
-            f"②データの挿入中にエラーが発生しました: {str(e)}"
+            f"データの挿入中にエラーが発生しました: {str(e)}"
         )
 
 
