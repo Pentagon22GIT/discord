@@ -105,9 +105,7 @@ async def test(interaction: discord.Interaction):
 async def insert(interaction: discord.Interaction, name: str, content: str):
     await interaction.response.defer()
     try:
-        response = (
-            supabase.table("chat").insert({"name": name, "content": content}).execute()
-        )
+        supabase.table("chat").insert({"name": name, "content": content}).execute()
         embed = discord.Embed(
             title="データ挿入完了",
             color=0x00FF00,  # 緑色
