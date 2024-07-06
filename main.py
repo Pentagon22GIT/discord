@@ -102,10 +102,16 @@ async def test(interaction: discord.Interaction):
 
 
 @client.tree.command(name="insert", description="Supabaseにデータを挿入します")
-async def insert(interaction: discord.Interaction, name: str, content: str):
+async def insert(
+    interaction: discord.Interaction, name: str, content: str, mention_id: int = None
+):
     await interaction.response.defer()
     try:
-        supabase.table("chat").insert({"name": name, "content": content}).execute()
+        data = {"name": name, "content": content}
+        if mention_id is not None:
+            data["mention_id"] = mention_id
+
+        supabase.table("chat").insert(data).execute()
         embed = discord.Embed(
             title="データ挿入完了",
             color=0x00FF00,  # 緑色
@@ -113,6 +119,8 @@ async def insert(interaction: discord.Interaction, name: str, content: str):
         )
         embed.add_field(name="Name", value=name, inline=True)
         embed.add_field(name="Content", value=content, inline=True)
+        if mention_id is not None:
+            embed.add_field(name="Mention ID", value=str(mention_id), inline=True)
         embed.set_footer(text="挿入されたデータの詳細")
 
         await interaction.followup.send(embed=embed)
