@@ -108,21 +108,16 @@ async def insert(interaction: discord.Interaction, name: str, content: str):
         response = (
             supabase.table("chat").insert({"name": name, "content": content}).execute()
         )
-        if response.error:
-            await interaction.followup.send(
-                f"データの挿入中にエラーが発生しました: {response.error.message}"
-            )
-        else:
-            embed = discord.Embed(
-                title="データ挿入完了",
-                color=0x00FF00,  # 緑色
-                description="Supabaseにデータが正常に挿入されました",
-            )
-            embed.add_field(name="Name", value=name, inline=True)
-            embed.add_field(name="Content", value=content, inline=True)
-            embed.set_footer(text="挿入されたデータの詳細")
+        embed = discord.Embed(
+            title="データ挿入完了",
+            color=0x00FF00,  # 緑色
+            description="Supabaseにデータが正常に挿入されました",
+        )
+        embed.add_field(name="Name", value=name, inline=True)
+        embed.add_field(name="Content", value=content, inline=True)
+        embed.set_footer(text="挿入されたデータの詳細")
 
-            await interaction.followup.send(embed=embed)
+        await interaction.followup.send(embed=embed)
     except Exception as e:
         await interaction.followup.send(
             f"データの挿入中にエラーが発生しました: {str(e)}"
