@@ -4,6 +4,7 @@ from discord.ext import commands
 from keep_alive import keep_alive
 import matplotlib.pyplot as plt
 import io
+import numpy as np  # 追加: np.inf を使用するため
 
 intents = discord.Intents.default()
 intents.message_content = True
