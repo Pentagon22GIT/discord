@@ -4,7 +4,7 @@ from discord.ext import commands
 from keep_alive import keep_alive
 import matplotlib.pyplot as plt
 import io
-import numpy as np  # 追加: np.inf を使用するため
+import numpy as np  # np.inf を使用するため
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -24,7 +24,7 @@ client = MyClient()
 
 @client.event
 async def on_ready():
-    await client.change_presence(activity=discord.Game(name="Supabaseに接続中"))
+    await client.change_presence(activity=discord.Game(name="現在開発中"))
     print(f"ログインしました: {client.user}")
 
 
@@ -49,7 +49,7 @@ async def setup(interaction: discord.Interaction):
 async def test(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Test機能",
-        color=0xFF901E,  # フレーム色指定(今回は緑)
+        color=0xFF901E,  # フレーム色指定(今回はオレンジ)
         description="未実装機能",
         url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
     )
