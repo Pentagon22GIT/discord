@@ -1,13 +1,9 @@
 import discord
 import os
 from discord.ext import commands
-from supabase import create_client, Client
 from keep_alive import keep_alive
-
-# Supabaseクライアントを初期化
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(supabase_url, supabase_key)
+import matplotlib.pyplot as plt
+import io
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -40,54 +36,12 @@ async def setup(interaction: discord.Interaction):
         url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
     )
     embed.add_field(
-        name="Get", value="現在の状況を取得することができます", inline=False
-    )
-    embed.add_field(
         name="Test", value="テスト機能を使用することができます", inline=False
-    )
-    embed.add_field(
-        name="Insert",
-        value="データベースを通してchatをすることができます",
-        inline=False,
     )
     embed.set_footer(
         text="現在時刻での状況です",  # フッターには開発者の情報でも入れてみる
     )
     await interaction.response.send_message(embed=embed)
-
-
-@client.tree.command(name="get", description="Supabaseからデータを取得します")
-async def get(interaction: discord.Interaction):
-    await interaction.response.defer()  # インタラクションを一時保留
-    try:
-        response = supabase.table("test").select("*").execute()
-        data = response.data
-        if not data:
-            await interaction.followup.send("データがありません！")
-        else:
-            embed = discord.Embed(
-                title="現在の状況",
-                color=0x00FF00,  # フレーム色指定(今回は緑)
-                description="サイトからさらに詳しく見ることができます",
-                url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
-            )
-
-            for row in data:
-                embed.add_field(
-                    name=row["name"],
-                    value=f"{row['condition']}",
-                    inline=False,
-                )
-
-            embed.set_footer(
-                text="現在時刻での状況です",  # フッターには開発者の情報でも入れてみる
-            )
-            await interaction.followup.send(embed=embed)
-
-    except Exception as e:
-        await interaction.followup.send(
-            f"データの取得中にエラーが発生しました: {str(e)}"
-        )
 
 
 @client.tree.command(name="test", description="テスト機能を表示します")
@@ -101,33 +55,25 @@ async def test(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-@client.tree.command(name="insert", description="Supabaseにデータを挿入します")
-async def insert(
-    interaction: discord.Interaction, name: str, content: str, mention_id: int = None
-):
-    await interaction.response.defer()
+@client.tree.command(name="math", description="数式を画像として表示します")
+async def math(interaction: discord.Interaction, formula: str):
     try:
-        data = {"name": name, "content": content}
-        if mention_id is not None:
-            data["mention_id"] = mention_id
+        # 数式を画像に描画
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, f"${formula}$", fontsize=30, ha="center", va="center")
+        ax.axis("off")
 
-        supabase.table("chat").insert(data).execute()
-        embed = discord.Embed(
-            title="データ挿入完了",
-            color=0x00FF00,  # 緑色
-            description="Supabaseにデータが正常に挿入されました",
-        )
-        embed.add_field(name="Name", value=name, inline=True)
-        embed.add_field(name="Content", value=content, inline=True)
-        if mention_id is not None:
-            embed.add_field(name="Mention ID", value=str(mention_id), inline=True)
-        embed.set_footer(text="挿入されたデータの詳細")
+        # 画像をバイナリデータに変換
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close(fig)
 
-        await interaction.followup.send(embed=embed)
+        # 画像をDiscordに送信
+        file = discord.File(buf, filename="formula.png")
+        await interaction.response.send_message(file=file)
     except Exception as e:
-        await interaction.followup.send(
-            f"データの挿入中にエラーが発生しました: {str(e)}"
-        )
+        await interaction.response.send_message(f"Error: {e}")
 
 
 TOKEN = os.getenv("DISCORD_TOKEN")
