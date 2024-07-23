@@ -4,7 +4,7 @@ from discord.ext import commands
 from keep_alive import keep_alive
 import matplotlib.pyplot as plt
 import io
-import numpy as np  # np.inf を使用するため
+import numpy as np
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -21,6 +21,8 @@ class MyClient(commands.Bot):
 
 client = MyClient()
 
+math_history = {}
+
 
 @client.event
 async def on_ready():
@@ -28,37 +30,31 @@ async def on_ready():
     print(f"ログインしました: {client.user}")
 
 
-@client.tree.command(name="setup", description="使い方の説明です")
-async def setup(interaction: discord.Interaction):
+@client.tree.command(name="help", description="コマンドの一覧と説明を表示します")
+async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="現在の状況",
-        color=0x00FF00,  # フレーム色指定(今回は緑)
-        description="サイトからさらに詳しく見ることができます",
-        url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
+        title="ヘルプ", color=0x3498DB, description="以下は利用可能なコマンドの一覧です"
     )
     embed.add_field(
-        name="Test", value="テスト機能を使用することができます", inline=False
+        name="/math <formula>", value="数式を画像として表示します", inline=False
     )
-    embed.set_footer(
-        text="現在時刻での状況です",  # フッターには開発者の情報でも入れてみる
-    )
-    await interaction.response.send_message(embed=embed)
-
-
-@client.tree.command(name="test", description="テスト機能を表示します")
-async def test(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="Test機能",
-        color=0xFF901E,  # フレーム色指定(今回はオレンジ)
-        description="未実装機能",
-        url="https://example.com",  # これを設定すると、タイトルが指定URLへのリンクになる
+    embed.add_field(
+        name="/history", value="過去に入力した数式を表示します", inline=False
     )
     await interaction.response.send_message(embed=embed)
 
 
 @client.tree.command(name="math", description="数式を画像として表示します")
 async def math(interaction: discord.Interaction, formula: str):
+    user_id = interaction.user.id
+    if user_id not in math_history:
+        math_history[user_id] = []
+    math_history[user_id].append(formula)
+
     try:
+        if not formula:
+            raise ValueError("数式が空です。")
+
         # 数式を画像に描画
         fig, ax = plt.subplots()
         ax.text(0.5, 0.5, f"${formula}$", fontsize=30, ha="center", va="center")
@@ -75,6 +71,16 @@ async def math(interaction: discord.Interaction, formula: str):
         await interaction.response.send_message(file=file)
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
+
+
+@client.tree.command(name="history", description="過去に入力した数式を表示します")
+async def history(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    if user_id not in math_history or not math_history[user_id]:
+        await interaction.response.send_message("数式の履歴がありません。")
+    else:
+        history_str = "\n".join(math_history[user_id])
+        await interaction.response.send_message(f"数式の履歴:\n{history_str}")
 
 
 TOKEN = os.getenv("DISCORD_TOKEN")
