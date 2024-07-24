@@ -7,7 +7,8 @@ WORKDIR /bot
 # 必要なシステムパッケージをインストール
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
-    libglib2.0-0
+    libglib2.0-0 \
+    libzbar0
 
 # Python依存関係をインストール
 COPY requirements.txt /bot/
