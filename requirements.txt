@@ -1,7 +1,6 @@
 discord.py==2.1.1
 Flask==2.1.0
 Werkzeug==2.0.3
-supabase
 matplotlib
 numpy
 googletrans==4.0.0-rc1
