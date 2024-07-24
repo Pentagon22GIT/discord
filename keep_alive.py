@@ -227,12 +227,16 @@ html_layout = """
                         <p>discordにない数式の書きおこしをしてくれる</p>
                     </div>
                     <div class="card">
-                        <h3>辞書検索</h3>
-                        <p>すぐにわからない単語を調べることができる</p>
+                        <h3>検索</h3>
+                        <p>単語の意味や翻訳を検索できる</p>
                     </div>
                     <div class="card">
-                        <h3>翻訳</h3>
-                        <p>いち早く単語を翻訳して理解を早める</p>
+                        <h3>QRコード</h3>
+                        <p>地味にめんどくさい作業を楽にしてくれる</p>
+                    </div>
+                    <div class="card">
+                        <h3>通貨換算</h3>
+                        <p>今のお金の価値をいち早く取得</p>
                     </div>
                 </div>
             </div>
@@ -243,8 +247,11 @@ html_layout = """
                 <ul>
                     <li><code>/help</code> - 使い方を表示します。</li>
                     <li><code>/math [式]</code> - 数式を解きます。</li>
-                    <li><code>/define [言葉]</code> - 数式を解きます。</li>
-                    <li><code>/translate [言葉] [翻訳先言語]</code> - 数式を解きます。</li>
+                    <li><code>/define [言葉]</code> - 辞書を引きます</li>
+                    <li><code>/translate [言葉] [翻訳先言語]</code> - 言語を翻訳します</li>
+                    <li><code>/qrcode [URL]</code> - リンクをQRコードに変換します</li>
+                    <li><code>/decode_qrcode [画像]</code> - QRコードをリンクに変換します</li>
+                    <li><code>/convert [換算する金額] [元の通貨] [換算後の通貨]</code> - 通貨を換算します</li>
                 </ul>
             </div>
         </section>
