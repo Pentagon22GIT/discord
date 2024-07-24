@@ -3,8 +3,8 @@ Flask
 Werkzeug
 matplotlib
 numpy
-requests
-googletrans
+requests==2.31.0
+googletrans==4.0.0-rc1
 qrcode[pil]
 opencv-python
 pyzbar

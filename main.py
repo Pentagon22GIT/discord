@@ -88,23 +88,13 @@ async def math(interaction: discord.Interaction, formula: str):
 @client.tree.command(name="define", description="単語の定義を表示します")
 async def define(interaction: discord.Interaction, word: str):
     try:
-        # 入力された単語の言語を検出
-        detection = translator.detect(word)
-        if detection is None:
-            raise ValueError("言語を検出できませんでした。")
-        lang = detection.lang
-
-        print(f"Detected language: {lang}")  # デバッグ用に検出された言語を出力
-
         response = requests.get(
-            f"https://api.dictionaryapi.dev/api/v2/entries/{lang}/{word}"
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
         )
         data = response.json()
 
         if response.status_code != 200 or not data:
             raise ValueError("単語の定義が見つかりませんでした。")
-
-        print(f"API response data: {data}")  # デバッグ用にAPIレスポンスデータを出力
 
         definition = data[0]["meanings"][0]["definitions"][0]["definition"]
         embed = discord.Embed(
@@ -112,6 +102,7 @@ async def define(interaction: discord.Interaction, word: str):
         )
         await interaction.response.send_message(embed=embed)
     except Exception as e:
+        print(f"Error in define command: {e}")
         await interaction.response.send_message(f"Error: {e}")
 
 
@@ -135,11 +126,12 @@ async def translate(
     interaction: discord.Interaction, text: str, language: app_commands.Choice[str]
 ):
     try:
+        print(f"Translating text: {text} to language: {language.value}")
         translation = translator.translate(text, dest=language.value)
         if translation is None:
             raise ValueError("翻訳に失敗しました。")
 
-        print(f"Translation: {translation.text}")  # デバッグ用に翻訳結果を出力
+        print(f"Translation result: {translation.text}")
 
         embed = discord.Embed(
             title="翻訳結果",
@@ -148,6 +140,7 @@ async def translate(
         )
         await interaction.response.send_message(embed=embed)
     except Exception as e:
+        print(f"Error in translate command: {e}")
         await interaction.response.send_message(f"Error: {e}")
 
 
