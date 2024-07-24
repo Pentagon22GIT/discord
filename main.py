@@ -7,7 +7,6 @@ import io
 import requests
 from googletrans import Translator
 import qrcode
-from forex_python.converter import CurrencyRates
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
@@ -29,7 +28,6 @@ class MyClient(commands.Bot):
 client = MyClient()
 
 translator = Translator()
-currency_rates = CurrencyRates()
 
 
 @client.event
@@ -58,11 +56,6 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="/decode_qrcode",
         value="アップロードされたQRコード画像を解読します",
-        inline=False,
-    )
-    embed.add_field(
-        name="/convert <amount> <from_currency> <to_currency>",
-        value="指定した通貨を他の通貨に換算します (例: /convert 100 USD JPY)",
         inline=False,
     )
     await interaction.response.send_message(embed=embed)
@@ -189,30 +182,6 @@ async def decode_qrcode(
         decoded_text = decoded_objects[0].data.decode("utf-8")
         embed = discord.Embed(
             title="QRコードの解読結果", color=0x3498DB, description=decoded_text
-        )
-        await interaction.response.send_message(embed=embed)
-    except Exception as e:
-        await interaction.response.send_message(f"Error: {e}")
-
-
-@client.tree.command(name="convert", description="指定した通貨を他の通貨に換算します")
-@app_commands.describe(
-    amount="換算する金額", from_currency="元の通貨", to_currency="換算後の通貨"
-)
-async def convert(
-    interaction: discord.Interaction,
-    amount: float,
-    from_currency: str,
-    to_currency: str,
-):
-    try:
-        converted_amount = currency_rates.convert(
-            from_currency.upper(), to_currency.upper(), amount
-        )
-        embed = discord.Embed(
-            title="通貨換算結果",
-            color=0x1ABC9C,
-            description=f"{amount} {from_currency.upper()} は {converted_amount:.2f} {to_currency.upper()} です。",
         )
         await interaction.response.send_message(embed=embed)
     except Exception as e:

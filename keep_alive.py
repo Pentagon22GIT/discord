@@ -234,10 +234,6 @@ html_layout = """
                         <h3>QRコード</h3>
                         <p>地味にめんどくさい作業を楽にしてくれる</p>
                     </div>
-                    <div class="card">
-                        <h3>通貨換算</h3>
-                        <p>今のお金の価値をいち早く取得</p>
-                    </div>
                 </div>
             </div>
         </section>
@@ -251,7 +247,6 @@ html_layout = """
                     <li><code>/translate [言葉] [翻訳先言語]</code> - 言語を翻訳します</li>
                     <li><code>/qrcode [URL]</code> - リンクをQRコードに変換します</li>
                     <li><code>/decode_qrcode [画像]</code> - QRコードをリンクに変換します</li>
-                    <li><code>/convert [換算する金額] [元の通貨] [換算後の通貨]</code> - 通貨を換算します</li>
                 </ul>
             </div>
         </section>

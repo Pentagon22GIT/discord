@@ -6,6 +6,5 @@ numpy
 requests
 googletrans
 qrcode[pil]
-forex-python
 opencv-python
 pyzbar
