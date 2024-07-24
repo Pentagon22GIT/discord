@@ -2,7 +2,7 @@ discord.py==2.1.1
 Flask==2.1.0
 Werkzeug==2.0.3
 matplotlib==3.4.3
-numpy
+numpy==1.21.4
 googletrans==4.0.0-rc1
 requests==2.26.0
 qrcode[pil]==7.3.1
