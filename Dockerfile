@@ -1,12 +1,6 @@
 FROM python:3.11
-
-# 必要な依存関係をインストール
-RUN apt-get update && \
-    apt-get install -y build-essential gcc && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /bot
 COPY requirements.txt /bot/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install -r requirements.txt
 COPY . /bot
-CMD ["python", "main.py"]
+CMD python main.py

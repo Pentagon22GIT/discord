@@ -1,10 +1,10 @@
 discord.py==2.1.1
 Flask==2.1.0
 Werkzeug==2.0.3
-matplotlib==3.5.2
-numpy==1.21.0
+matplotlib
+numpy
 googletrans==4.0.0-rc1
-requests==2.26.0
+requests
 qrcode[pil]==7.3.1
 forex-python==1.8
 opencv-python==4.5.3.56
