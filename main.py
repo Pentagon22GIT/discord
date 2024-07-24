@@ -90,7 +90,11 @@ async def define(interaction: discord.Interaction, word: str):
     try:
         # 入力された単語の言語を検出
         detection = translator.detect(word)
+        if detection is None:
+            raise ValueError("言語を検出できませんでした。")
         lang = detection.lang
+
+        print(f"Detected language: {lang}")  # デバッグ用に検出された言語を出力
 
         response = requests.get(
             f"https://api.dictionaryapi.dev/api/v2/entries/{lang}/{word}"
@@ -99,6 +103,8 @@ async def define(interaction: discord.Interaction, word: str):
 
         if response.status_code != 200 or not data:
             raise ValueError("単語の定義が見つかりませんでした。")
+
+        print(f"API response data: {data}")  # デバッグ用にAPIレスポンスデータを出力
 
         definition = data[0]["meanings"][0]["definitions"][0]["definition"]
         embed = discord.Embed(
@@ -130,6 +136,11 @@ async def translate(
 ):
     try:
         translation = translator.translate(text, dest=language.value)
+        if translation is None:
+            raise ValueError("翻訳に失敗しました。")
+
+        print(f"Translation: {translation.text}")  # デバッグ用に翻訳結果を出力
+
         embed = discord.Embed(
             title="翻訳結果",
             color=0x3498DB,
