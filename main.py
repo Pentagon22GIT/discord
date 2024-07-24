@@ -1,17 +1,17 @@
 import discord
-import os
 from discord.ext import commands
 from discord import app_commands
-from keep_alive import keep_alive
+import os
+import matplotlib.pyplot as plt
 import io
-import qrcode
 import requests
 from googletrans import Translator
+import qrcode
 from forex_python.converter import CurrencyRates
-from PIL import Image
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
+from keep_alive import keep_alive
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -27,7 +27,9 @@ class MyClient(commands.Bot):
 
 
 client = MyClient()
+
 translator = Translator()
+currency_rates = CurrencyRates()
 
 
 @client.event
@@ -42,26 +44,76 @@ async def help_command(interaction: discord.Interaction):
         title="ヘルプ", color=0x3498DB, description="以下は利用可能なコマンドの一覧です"
     )
     embed.add_field(
+        name="/math <formula>", value="数式を画像として表示します", inline=False
+    )
+    embed.add_field(name="/define <word>", value="単語の定義を表示します", inline=False)
+    embed.add_field(
         name="/translate <text> <language>",
         value="テキストを指定した言語に翻訳します (例: /translate Hello Japanese)",
         inline=False,
     )
     embed.add_field(
-        name="/qr_generate <text>",
-        value="指定したテキストのQRコードを生成します",
+        name="/qrcode <text>", value="テキストからQRコードを生成します", inline=False
+    )
+    embed.add_field(
+        name="/decode_qrcode",
+        value="アップロードされたQRコード画像を解読します",
         inline=False,
     )
     embed.add_field(
-        name="/qr_decode",
-        value="アップロードされた画像のQRコードを解読します",
-        inline=False,
-    )
-    embed.add_field(
-        name="/currency <amount> <from_currency> <to_currency>",
-        value="指定した通貨を別の通貨に換算します (例: /currency 100 USD JPY)",
+        name="/convert <amount> <from_currency> <to_currency>",
+        value="指定した通貨を他の通貨に換算します (例: /convert 100 USD JPY)",
         inline=False,
     )
     await interaction.response.send_message(embed=embed)
+
+
+@client.tree.command(name="math", description="数式を画像として表示します")
+async def math(interaction: discord.Interaction, formula: str):
+    try:
+        if not formula:
+            raise ValueError("数式が空です。")
+
+        # 数式を画像に描画
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, f"${formula}$", fontsize=30, ha="center", va="center")
+        ax.axis("off")
+
+        # 画像をバイナリデータに変換
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close(fig)
+
+        # 画像をDiscordに送信
+        file = discord.File(buf, filename="formula.png")
+        await interaction.response.send_message(file=file)
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
+
+
+@client.tree.command(name="define", description="単語の定義を表示します")
+async def define(interaction: discord.Interaction, word: str):
+    try:
+        # 入力された単語の言語を検出
+        detection = translator.detect(word)
+        lang = detection.lang
+
+        response = requests.get(
+            f"https://api.dictionaryapi.dev/api/v2/entries/{lang}/{word}"
+        )
+        data = response.json()
+
+        if response.status_code != 200 or not data:
+            raise ValueError("単語の定義が見つかりませんでした。")
+
+        definition = data[0]["meanings"][0]["definitions"][0]["definition"]
+        embed = discord.Embed(
+            title=f"{word}の定義", color=0xE74C3C, description=definition
+        )
+        await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
 
 
 @client.tree.command(name="translate", description="テキストを指定した言語に翻訳します")
@@ -95,10 +147,8 @@ async def translate(
         await interaction.response.send_message(f"Error: {e}")
 
 
-@client.tree.command(
-    name="qr_generate", description="指定したテキストのQRコードを生成します"
-)
-async def qr_generate(interaction: discord.Interaction, text: str):
+@client.tree.command(name="qrcode", description="テキストからQRコードを生成します")
+async def qrcode_command(interaction: discord.Interaction, text: str):
     try:
         qr = qrcode.QRCode(
             version=1,
@@ -108,10 +158,13 @@ async def qr_generate(interaction: discord.Interaction, text: str):
         )
         qr.add_data(text)
         qr.make(fit=True)
+
         img = qr.make_image(fill="black", back_color="white")
+
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         buf.seek(0)
+
         file = discord.File(buf, filename="qrcode.png")
         await interaction.response.send_message(file=file)
     except Exception as e:
@@ -119,47 +172,49 @@ async def qr_generate(interaction: discord.Interaction, text: str):
 
 
 @client.tree.command(
-    name="qr_decode", description="アップロードされた画像のQRコードを解読します"
+    name="decode_qrcode", description="アップロードされたQRコード画像を解読します"
 )
-async def qr_decode(interaction: discord.Interaction):
+async def decode_qrcode(
+    interaction: discord.Interaction, attachment: discord.Attachment
+):
     try:
-        if not interaction.attachments:
-            await interaction.response.send_message(
-                "画像がアップロードされていません。"
-            )
-            return
-
-        attachment = interaction.attachments[0]
         img_data = await attachment.read()
-        img = Image.open(io.BytesIO(img_data))
-        img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        np_arr = np.frombuffer(img_data, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
         decoded_objects = decode(img)
-
         if not decoded_objects:
-            await interaction.response.send_message("QRコードが見つかりませんでした。")
-            return
+            raise ValueError("QRコードが見つかりませんでした。")
 
-        decoded_texts = [obj.data.decode("utf-8") for obj in decoded_objects]
-        await interaction.response.send_message(
-            f"解読されたQRコードの内容: {'; '.join(decoded_texts)}"
+        decoded_text = decoded_objects[0].data.decode("utf-8")
+        embed = discord.Embed(
+            title="QRコードの解読結果", color=0x3498DB, description=decoded_text
         )
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
 
-@client.tree.command(name="currency", description="指定した通貨を別の通貨に換算します")
-async def currency(
+@client.tree.command(name="convert", description="指定した通貨を他の通貨に換算します")
+@app_commands.describe(
+    amount="換算する金額", from_currency="元の通貨", to_currency="換算後の通貨"
+)
+async def convert(
     interaction: discord.Interaction,
     amount: float,
     from_currency: str,
     to_currency: str,
 ):
     try:
-        c = CurrencyRates()
-        result = c.convert(from_currency, to_currency, amount)
-        await interaction.response.send_message(
-            f"{amount} {from_currency} は {result:.2f} {to_currency} です"
+        converted_amount = currency_rates.convert(
+            from_currency.upper(), to_currency.upper(), amount
         )
+        embed = discord.Embed(
+            title="通貨換算結果",
+            color=0x1ABC9C,
+            description=f"{amount} {from_currency.upper()} は {converted_amount:.2f} {to_currency.upper()} です。",
+        )
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 

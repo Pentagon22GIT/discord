@@ -223,8 +223,8 @@ html_layout = """
                 <h2>特徴</h2>
                 <div class="grid">
                     <div class="card">
-                        <h3>より効率的に</h3>
-                        <p>かゆいところに手が届くコマンド</p>
+                        <h3>数式表示</h3>
+                        <p>discordにない数式を出力する機能を保有</p>
                     </div>
                     <div class="card">
                         <h3>検索</h3>
@@ -246,6 +246,7 @@ html_layout = """
                 <h2>コマンド</h2>
                 <ul>
                     <li><code>/help</code> - 使い方を表示します。</li>
+                    <li><code>/math [数式]</code> - 数式を出力</li>
                     <li><code>/define [言葉]</code> - 辞書を引きます</li>
                     <li><code>/translate [言葉] [翻訳先言語]</code> - 言語を翻訳します</li>
                     <li><code>/qrcode [URL]</code> - リンクをQRコードに変換します</li>
