@@ -88,8 +88,13 @@ async def math(interaction: discord.Interaction, formula: str):
 @client.tree.command(name="define", description="単語の定義を表示します")
 async def define(interaction: discord.Interaction, word: str):
     try:
+        # 入力された単語の言語を検出
+        detection = translator.detect(word)
+        lang = detection.lang
+
+        # 辞書APIの呼び出し
         response = requests.get(
-            f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+            f"https://api.dictionaryapi.dev/api/v2/entries/{lang}/{word}"
         )
         data = response.json()
 
@@ -102,7 +107,6 @@ async def define(interaction: discord.Interaction, word: str):
         )
         await interaction.response.send_message(embed=embed)
     except Exception as e:
-        print(f"Error in define command: {e}")
         await interaction.response.send_message(f"Error: {e}")
 
 
