@@ -1,10 +1,12 @@
 import discord
 import os
 from discord.ext import commands
+from discord import app_commands
 from keep_alive import keep_alive
 import matplotlib.pyplot as plt
 import io
-import numpy as np
+import requests
+from googletrans import Translator
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -21,7 +23,7 @@ class MyClient(commands.Bot):
 
 client = MyClient()
 
-math_history = {}
+translator = Translator()
 
 
 @client.event
@@ -38,19 +40,17 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="/math <formula>", value="数式を画像として表示します", inline=False
     )
+    embed.add_field(name="/define <word>", value="単語の定義を表示します", inline=False)
     embed.add_field(
-        name="/history", value="過去に入力した数式を表示します", inline=False
+        name="/translate <text> <language>",
+        value="テキストを指定した言語に翻訳します (例: /translate Hello Japanese)",
+        inline=False,
     )
     await interaction.response.send_message(embed=embed)
 
 
 @client.tree.command(name="math", description="数式を画像として表示します")
 async def math(interaction: discord.Interaction, formula: str):
-    user_id = interaction.user.id
-    if user_id not in math_history:
-        math_history[user_id] = []
-    math_history[user_id].append(formula)
-
     try:
         if not formula:
             raise ValueError("数式が空です。")
@@ -73,14 +73,55 @@ async def math(interaction: discord.Interaction, formula: str):
         await interaction.response.send_message(f"Error: {e}")
 
 
-@client.tree.command(name="history", description="過去に入力した数式を表示します")
-async def history(interaction: discord.Interaction):
-    user_id = interaction.user.id
-    if user_id not in math_history or not math_history[user_id]:
-        await interaction.response.send_message("数式の履歴がありません。")
-    else:
-        history_str = "\n".join(math_history[user_id])
-        await interaction.response.send_message(f"数式の履歴:\n{history_str}")
+@client.tree.command(name="define", description="単語の定義を表示します")
+async def define(interaction: discord.Interaction, word: str):
+    try:
+        response = requests.get(
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+        )
+        data = response.json()
+
+        if response.status_code != 200 or not data:
+            raise ValueError("単語の定義が見つかりませんでした。")
+
+        definition = data[0]["meanings"][0]["definitions"][0]["definition"]
+        embed = discord.Embed(
+            title=f"{word}の定義", color=0xE74C3C, description=definition
+        )
+        await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
+
+
+@client.tree.command(name="translate", description="テキストを指定した言語に翻訳します")
+@app_commands.describe(text="翻訳するテキスト", language="翻訳先の言語")
+@app_commands.choices(
+    language=[
+        app_commands.Choice(name="Japanese", value="ja"),
+        app_commands.Choice(name="English", value="en"),
+        app_commands.Choice(name="Spanish", value="es"),
+        app_commands.Choice(name="French", value="fr"),
+        app_commands.Choice(name="German", value="de"),
+        app_commands.Choice(name="Chinese", value="zh-cn"),
+        app_commands.Choice(name="Korean", value="ko"),
+        app_commands.Choice(name="Russian", value="ru"),
+        app_commands.Choice(name="Italian", value="it"),
+        app_commands.Choice(name="Portuguese", value="pt"),
+    ]
+)
+async def translate(
+    interaction: discord.Interaction, text: str, language: app_commands.Choice[str]
+):
+    try:
+        translation = translator.translate(text, dest=language.value)
+        embed = discord.Embed(
+            title="翻訳結果",
+            color=0x3498DB,
+            description=f"**原文 ({translation.src})**: {text}\n**翻訳 ({language.name})**: {translation.text}",
+        )
+        await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
 
 
 TOKEN = os.getenv("DISCORD_TOKEN")

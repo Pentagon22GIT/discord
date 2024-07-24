@@ -6,6 +6,7 @@ app = Flask("")
 html_layout = """
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +35,7 @@ html_layout = """
         }
 
         .header-image {
-            background: url('https://discord-pyj9.onrender.com/header.jpg') no-repeat center center/cover;
+            background: url('https://da2d2y78v2iva.cloudfront.net/4546/170856257032501.jpg?_=1708562570') no-repeat center center/cover;
             height: 200px;
             display: flex;
             align-items: center;
@@ -222,8 +223,16 @@ html_layout = """
                 <h2>特徴</h2>
                 <div class="grid">
                     <div class="card">
-                        <h3>数式の書き起こし</h3>
-                        <p>discordにない数式の書きおこしをしてくれます</p>
+                        <h3>数式</h3>
+                        <p>discordにない数式の書きおこしをしてくれる</p>
+                    </div>
+                    <div class="card">
+                        <h3>辞書検索</h3>
+                        <p>すぐにわからない単語を調べることができる</p>
+                    </div>
+                    <div class="card">
+                        <h3>翻訳</h3>
+                        <p>いち早く単語を翻訳して理解を早める</p>
                     </div>
                 </div>
             </div>
@@ -234,12 +243,14 @@ html_layout = """
                 <ul>
                     <li><code>/help</code> - 使い方を表示します。</li>
                     <li><code>/math [式]</code> - 数式を解きます。</li>
-                    <li><code>/history</code> - 過去に入力した数式を表示します</li>
+                    <li><code>/define [言葉]</code> - 数式を解きます。</li>
+                    <li><code>/translate [言葉] [翻訳先言語]</code> - 数式を解きます。</li>
                 </ul>
             </div>
         </section>
     </main>
 </body>
+
 </html>
 """
 

@@ -4,3 +4,5 @@ Werkzeug==2.0.3
 supabase
 matplotlib
 numpy
+googletrans==4.0.0-rc1
+requests
