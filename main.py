@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 import os
 import matplotlib.pyplot as plt
@@ -11,6 +11,8 @@ import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
 from keep_alive import keep_alive
+from datetime import datetime, timedelta
+import asyncio  # asyncioを追加
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,6 +22,10 @@ intents.presences = True
 class MyClient(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="/", intents=intents)
+        self.timers = {}
+        self.stopwatches = {}
+        self.laps = {}
+        self.pomodoros = {}
 
     async def setup_hook(self):
         await self.tree.sync()
@@ -36,6 +42,7 @@ async def on_ready():
     print(f"ログインしました: {client.user}")
 
 
+# Help command
 @client.tree.command(name="help", description="コマンドの一覧と説明を表示します")
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -51,6 +58,41 @@ async def help_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
+        name="/timer set <time> <label>",
+        value="指定した時間のタイマーをセットします (例: /timer set 10m Study)",
+        inline=False,
+    )
+    embed.add_field(
+        name="/timer list",
+        value="設定されているタイマーの一覧を表示します",
+        inline=False,
+    )
+    embed.add_field(
+        name="/stopwatch start <label>",
+        value="指定した名前でストップウォッチを開始します (例: /stopwatch start Workout)",
+        inline=False,
+    )
+    embed.add_field(
+        name="/stopwatch lap <label>",
+        value="ストップウォッチのラップタイムを記録します (例: /stopwatch lap Workout)",
+        inline=False,
+    )
+    embed.add_field(
+        name="/stopwatch stop <label>",
+        value="ストップウォッチを停止して時間を表示します (例: /stopwatch stop Workout)",
+        inline=False,
+    )
+    embed.add_field(
+        name="/stopwatch reset <label>",
+        value="ストップウォッチをリセットします (例: /stopwatch reset Workout)",
+        inline=False,
+    )
+    embed.add_field(
+        name="/pomodoro <label> <work_time> <short_break> <cycles> <long_break>",
+        value="ポモドーロタイマーを設定します (例: /pomodoro Study 25 5 4 15)",
+        inline=False,
+    )
+    embed.add_field(
         name="/qrcode <text>", value="テキストからQRコードを生成します", inline=False
     )
     embed.add_field(
@@ -61,6 +103,7 @@ async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+# Math command
 @client.tree.command(name="math", description="数式を画像として表示します")
 async def math(interaction: discord.Interaction, formula: str):
     try:
@@ -85,6 +128,7 @@ async def math(interaction: discord.Interaction, formula: str):
         await interaction.response.send_message(f"Error: {e}")
 
 
+# Define command
 @client.tree.command(name="define", description="単語の定義を表示します")
 async def define(interaction: discord.Interaction, word: str):
     try:
@@ -110,6 +154,7 @@ async def define(interaction: discord.Interaction, word: str):
         await interaction.response.send_message(f"Error: {e}")
 
 
+# Translate command
 @client.tree.command(name="translate", description="テキストを指定した言語に翻訳します")
 @app_commands.describe(text="翻訳するテキスト", language="翻訳先の言語")
 @app_commands.choices(
@@ -148,6 +193,7 @@ async def translate(
         await interaction.response.send_message(f"Error: {e}")
 
 
+# QR code command
 @client.tree.command(name="qrcode", description="テキストからQRコードを生成します")
 async def qrcode_command(interaction: discord.Interaction, text: str):
     try:
@@ -172,6 +218,7 @@ async def qrcode_command(interaction: discord.Interaction, text: str):
         await interaction.response.send_message(f"Error: {e}")
 
 
+# Decode QR code command
 @client.tree.command(
     name="decode_qrcode", description="アップロードされたQRコード画像を解読します"
 )
@@ -192,6 +239,171 @@ async def decode_qrcode(
             title="QRコードの解読結果", color=0x3498DB, description=decoded_text
         )
         await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
+
+
+# Timer command
+@client.tree.command(name="timer", description="タイマー機能")
+@app_commands.describe(
+    action="タイマーの操作 (set, list, cancel)",
+    time="タイマーの時間 (例: 10m)",
+    label="タイマーのラベル",
+)
+async def timer(
+    interaction: discord.Interaction, action: str, time: str = None, label: str = None
+):
+    try:
+        if action == "set":
+            if not time or not label:
+                raise ValueError("時間とラベルを指定してください。")
+
+            seconds = int(timedelta(**{time[-1]: int(time[:-1])}).total_seconds())
+            end_time = datetime.now() + timedelta(seconds=seconds)
+            client.timers[label] = end_time
+
+            await interaction.response.send_message(
+                f"タイマー '{label}' が {time} 後に終了します。"
+            )
+            await timer_end(interaction, label, seconds)
+
+        elif action == "list":
+            if not client.timers:
+                await interaction.response.send_message(
+                    "現在設定されているタイマーはありません。"
+                )
+            else:
+                timers_list = "\n".join(
+                    [
+                        f"{label}: {end_time.strftime('%H:%M:%S')}"
+                        for label, end_time in client.timers.items()
+                    ]
+                )
+                await interaction.response.send_message(
+                    f"設定されているタイマー:\n{timers_list}"
+                )
+
+        elif action == "cancel":
+            if not label or label not in client.timers:
+                raise ValueError("キャンセルするタイマーのラベルを指定してください。")
+
+            del client.timers[label]
+            await interaction.response.send_message(
+                f"タイマー '{label}' がキャンセルされました。"
+            )
+
+        else:
+            raise ValueError(
+                "無効な操作です。set, list, cancelのいずれかを指定してください。"
+            )
+
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
+
+
+async def timer_end(interaction, label, seconds):
+    await asyncio.sleep(seconds)
+    if label in client.timers:
+        del client.timers[label]
+        await interaction.followup.send(f"タイマー '{label}' が終了しました！")
+
+
+# Stopwatch command
+@client.tree.command(name="stopwatch", description="ストップウォッチ機能")
+@app_commands.describe(
+    action="ストップウォッチの操作 (start, lap, stop, reset)",
+    label="ストップウォッチのラベル",
+)
+async def stopwatch(interaction: discord.Interaction, action: str, label: str):
+    try:
+        if action == "start":
+            if label in client.stopwatches:
+                raise ValueError("既に動作中のストップウォッチがあります。")
+            client.stopwatches[label] = datetime.now()
+            client.laps[label] = []
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' が開始されました。"
+            )
+
+        elif action == "lap":
+            if label not in client.stopwatches:
+                raise ValueError("動作中のストップウォッチが見つかりません。")
+            lap_time = datetime.now() - client.stopwatches[label]
+            client.laps[label].append(lap_time)
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' のラップタイム: {lap_time}"
+            )
+
+        elif action == "stop":
+            if label not in client.stopwatches:
+                raise ValueError("動作中のストップウォッチが見つかりません。")
+            elapsed_time = datetime.now() - client.stopwatches[label]
+            del client.stopwatches[label]
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' が停止しました。経過時間: {elapsed_time}"
+            )
+
+        elif action == "reset":
+            if label in client.stopwatches:
+                del client.stopwatches[label]
+            if label in client.laps:
+                del client.laps[label]
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' がリセットされました。"
+            )
+
+        else:
+            raise ValueError(
+                "無効な操作です。start, lap, stop, resetのいずれかを指定してください。"
+            )
+
+    except Exception as e:
+        await interaction.response.send_message(f"Error: {e}")
+
+
+# Pomodoro command
+@client.tree.command(name="pomodoro", description="ポモドーロタイマー機能")
+@app_commands.describe(
+    label="ポモドーロタイマーのラベル",
+    work_time="作業時間（分）",
+    short_break="短い休憩時間（分）",
+    cycles="ポモドーロの繰り返し回数",
+    long_break="長い休憩時間（分）",
+)
+async def pomodoro(
+    interaction: discord.Interaction,
+    label: str,
+    work_time: int,
+    short_break: int,
+    cycles: int,
+    long_break: int,
+):
+    try:
+        user_pomodoro = f"{interaction.user.id}-{label}"
+        if user_pomodoro in client.pomodoros:
+            raise ValueError("既にポモドーロタイマーが動作中です。")
+
+        client.pomodoros[user_pomodoro] = True
+        await interaction.response.send_message(
+            f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。"
+        )
+
+        for cycle in range(cycles):
+            if user_pomodoro not in client.pomodoros:
+                break
+            await asyncio.sleep(work_time * 60)
+            await interaction.followup.send(
+                f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
+            )
+            await asyncio.sleep(short_break * 60)
+
+        if user_pomodoro in client.pomodoros:
+            await interaction.followup.send(
+                f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
+            )
+            await asyncio.sleep(long_break * 60)
+            del client.pomodoros[user_pomodoro]
+
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
