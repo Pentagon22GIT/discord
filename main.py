@@ -258,7 +258,16 @@ async def timer(
             if not time or not label:
                 raise ValueError("時間とラベルを指定してください。")
 
-            seconds = int(timedelta(**{time[-1]: int(time[:-1])}).total_seconds())
+            time_units = {"s": "seconds", "m": "minutes", "h": "hours"}
+            unit = time[-1]
+            if unit not in time_units:
+                raise ValueError(
+                    "時間の単位は 's', 'm', 'h' のいずれかでなければなりません。"
+                )
+
+            seconds = int(
+                timedelta(**{time_units[unit]: int(time[:-1])}).total_seconds()
+            )
             end_time = datetime.now() + timedelta(seconds=seconds)
             client.timers[label] = end_time
 
