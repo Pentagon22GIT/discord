@@ -378,41 +378,59 @@ async def stopwatch(interaction: discord.Interaction, action: str, label: str):
     short_break="短い休憩時間（分）",
     cycles="ポモドーロの繰り返し回数",
     long_break="長い休憩時間（分）",
+    action="ポモドーロタイマーの操作 (start, stop, reset)",
 )
 async def pomodoro(
     interaction: discord.Interaction,
     label: str,
-    work_time: int,
-    short_break: int,
-    cycles: int,
-    long_break: int,
+    action: str,
+    work_time: int = None,
+    short_break: int = None,
+    cycles: int = None,
+    long_break: int = None,
 ):
     try:
         user_pomodoro = f"{interaction.user.id}-{label}"
-        if user_pomodoro in client.pomodoros:
-            raise ValueError("既にポモドーロタイマーが動作中です。")
 
-        client.pomodoros[user_pomodoro] = True
-        await interaction.response.send_message(
-            f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。"
-        )
+        if action == "start":
+            if user_pomodoro in client.pomodoros:
+                raise ValueError("既にポモドーロタイマーが動作中です。")
 
-        for cycle in range(cycles):
+            client.pomodoros[user_pomodoro] = True
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。"
+            )
+
+            for cycle in range(cycles):
+                if user_pomodoro not in client.pomodoros:
+                    break
+                await asyncio.sleep(work_time * 60)
+                await interaction.followup.send(
+                    f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
+                )
+                await asyncio.sleep(short_break * 60)
+
+            if user_pomodoro in client.pomodoros:
+                await interaction.followup.send(
+                    f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
+                )
+                await asyncio.sleep(long_break * 60)
+                del client.pomodoros[user_pomodoro]
+
+        elif action == "stop":
             if user_pomodoro not in client.pomodoros:
-                break
-            await asyncio.sleep(work_time * 60)
-            await interaction.followup.send(
-                f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
-            )
-            await asyncio.sleep(short_break * 60)
-
-        if user_pomodoro in client.pomodoros:
-            await interaction.followup.send(
-                f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
-            )
-            await asyncio.sleep(long_break * 60)
+                raise ValueError("動作中のポモドーロタイマーが見つかりません。")
             del client.pomodoros[user_pomodoro]
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' が停止されました。"
+            )
 
+        elif action == "reset":
+            if user_pomodoro in client.pomodoros:
+                del client.pomodoros[user_pomodoro]
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' がリセットされました。"
+            )
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
