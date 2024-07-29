@@ -15,26 +15,26 @@
 /help
 -ヘルプを表示
 
-/math <formula>
+/math [formula]
 -数式を画像として出力します
 
-/define <word>
+/define [word]
 -辞書引きをします(現在英語のみ対応)
 
-/translate <text> <language>
+/translate [text] [language]
 -言語を翻訳します(google翻訳を使用)
 
-/timer <action> <time> <label>
+/timer [action] [time] [label]
 -タイマーを設定
 
-/stopwatch <action> <label>
+/stopwatch [action] [label]
 -ストップウォッチを設定
 
-/pomodoro <label> <work_time> <short_break> <cycles> <long_break> <action>
+/pomodoro [label] [work_time] [short_break] [cycles] [long_break] [action]
 -ポモドーロタイマーを設定
 
-/qrcode <text>
+/qrcode [text]
 -リンクをQRコードに変換
 
-/decode_qrcode
+/decode_qrcode [画像]
 -QRコードをリンクに変換
