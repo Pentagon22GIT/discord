@@ -54,42 +54,22 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(name="/define <word>", value="単語の定義を表示します", inline=False)
     embed.add_field(
         name="/translate <text> <language>",
-        value="テキストを指定した言語に翻訳します (例: /translate Hello Japanese)",
+        value="テキストを指定した言語に翻訳します。例: /translate Hello Japanese",
         inline=False,
     )
     embed.add_field(
-        name="/timer set <time> <label>",
-        value="指定した時間のタイマーをセットします (例: /timer set 10m Study)",
-        inline=False,
-    )
-    embed.add_field(
-        name="/timer list",
-        value="設定されているタイマーの一覧を表示します",
+        name="/timer <action> <time> <label>",
+        value="タイマーを設定。例: /timer set 10m Study",
         inline=False,
     )
     embed.add_field(
         name="/stopwatch start <label>",
-        value="指定した名前でストップウォッチを開始します (例: /stopwatch start Workout)",
+        value="ストップウォッチを設定。例: /stopwatch start Workout",
         inline=False,
     )
     embed.add_field(
-        name="/stopwatch lap <label>",
-        value="ストップウォッチのラップタイムを記録します (例: /stopwatch lap Workout)",
-        inline=False,
-    )
-    embed.add_field(
-        name="/stopwatch stop <label>",
-        value="ストップウォッチを停止して時間を表示します (例: /stopwatch stop Workout)",
-        inline=False,
-    )
-    embed.add_field(
-        name="/stopwatch reset <label>",
-        value="ストップウォッチをリセットします (例: /stopwatch reset Workout)",
-        inline=False,
-    )
-    embed.add_field(
-        name="/pomodoro <label> <work_time> <short_break> <cycles> <long_break>",
-        value="ポモドーロタイマーを設定します (例: /pomodoro Study 25 5 4 15)",
+        name="/pomodoro <label> <work_time> <short_break> <cycles> <long_break> <action>",
+        value="ポモドーロタイマーを設定します。例: /pomodoro Study 25 5 4 15",
         inline=False,
     )
     embed.add_field(

@@ -231,6 +231,18 @@ html_layout = """
                         <p>単語の意味や翻訳を検索できる</p>
                     </div>
                     <div class="card">
+                        <h3>タイマー</h3>
+                        <p>タイマーを設定して効率を上げる</p>
+                    </div>
+                    <div class="card">
+                        <h3>ストップウォッチ</h3>
+                        <p>ストップウォッチを使用して時間を計測</p>
+                    </div>
+                    <div class="card">
+                        <h3>ポモドーロタイマー</h3>
+                        <p>効率の良い作業を実現する助っ人</p>
+                    </div>
+                    <div class="card">
                         <h3>QRコード</h3>
                         <p>地味にめんどくさい作業を楽にしてくれる</p>
                     </div>
@@ -245,6 +257,9 @@ html_layout = """
                     <li><code>/math [数式]</code> - 数式を出力</li>
                     <li><code>/define [言葉]</code> - 辞書を引きます</li>
                     <li><code>/translate [言葉] [翻訳先言語]</code> - 言語を翻訳します</li>
+                    <li><code>/timer [action] [time] [label]</code> - タイマーを設定</li>
+                    <li><code>/stopwatch [action] [label]</code> - ストップウォッチを設定</li>
+                    <li><code>/pomodoro [label] [work_time] [short_break] [cycles] [long_break] [action]</code> - ポモドーロタイマーを設定</li>
                     <li><code>/qrcode [URL]</code> - リンクをQRコードに変換します</li>
                     <li><code>/decode_qrcode [画像]</code> - QRコードをリンクに変換します</li>
                 </ul>
