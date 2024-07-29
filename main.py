@@ -396,26 +396,53 @@ async def pomodoro(
             if user_pomodoro in client.pomodoros:
                 raise ValueError("既にポモドーロタイマーが動作中です。")
 
-            client.pomodoros[user_pomodoro] = True
+            client.pomodoros[user_pomodoro] = {"continue": True, "count": 0}
             await interaction.response.send_message(
                 f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。"
             )
 
-            for cycle in range(cycles):
-                if user_pomodoro not in client.pomodoros:
-                    break
-                await asyncio.sleep(work_time * 60)
-                await interaction.followup.send(
-                    f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
-                )
-                await asyncio.sleep(short_break * 60)
+            while (
+                client.pomodoros[user_pomodoro]["continue"]
+                and client.pomodoros[user_pomodoro]["count"] < 10
+            ):
+                for cycle in range(cycles):
+                    if not client.pomodoros[user_pomodoro]["continue"]:
+                        break
+                    await asyncio.sleep(work_time * 60)
+                    await interaction.followup.send(
+                        f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
+                    )
+                    await asyncio.sleep(short_break * 60)
+                    client.pomodoros[user_pomodoro]["count"] += 1
 
-            if user_pomodoro in client.pomodoros:
-                await interaction.followup.send(
-                    f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
-                )
-                await asyncio.sleep(long_break * 60)
-                del client.pomodoros[user_pomodoro]
+                if client.pomodoros[user_pomodoro]["count"] < 10:
+                    await interaction.followup.send(
+                        f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
+                    )
+                    await asyncio.sleep(long_break * 60)
+                else:
+                    await interaction.followup.send(
+                        f"10回のポモドーロサイクルが完了しました。続けますか？ (はい/いいえ) 1分以内に応答してください。"
+                    )
+                    try:
+                        response = await client.wait_for(
+                            "message",
+                            check=lambda message: message.author == interaction.user
+                            and message.channel == interaction.channel
+                            and message.content in ["はい", "いいえ"],
+                            timeout=60.0,
+                        )
+                        if response.content == "はい":
+                            client.pomodoros[user_pomodoro]["count"] = 0
+                        else:
+                            client.pomodoros[user_pomodoro]["continue"] = False
+                    except asyncio.TimeoutError:
+                        client.pomodoros[user_pomodoro]["continue"] = False
+
+            del client.pomodoros[user_pomodoro]
+            await interaction.followup.send(
+                f"ポモドーロタイマー '{label}' が終了しました。"
+            )
 
         elif action == "stop":
             if user_pomodoro not in client.pomodoros:
