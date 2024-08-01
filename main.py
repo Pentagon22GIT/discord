@@ -244,137 +244,115 @@ async def timer(
                 raise ValueError(
                     "時間の単位は 's', 'm', 'h' のいずれかでなければなりません。"
                 )
+            duration = int(time[:-1])
+            timer_time = timedelta(**{time_units[unit]: duration})
 
-            seconds = int(
-                timedelta(**{time_units[unit]: int(time[:-1])}).total_seconds()
-            )
-            end_time = datetime.now() + timedelta(seconds=seconds)
+            end_time = datetime.now() + timer_time
             client.timers[label] = end_time
 
-            embed = discord.Embed(
-                title="タイマーセット",
-                description=f"タイマー '{label}' が {time} 後に終了します。",
-                color=0x00FF00,
+            await interaction.response.send_message(
+                f"タイマー '{label}' を {time} にセットしました。"
             )
-            await interaction.response.send_message(embed=embed)
-            await timer_end(interaction, label, seconds)
+
+            # タイマーが終了したら通知を送る
+            client.timers_tasks[label] = asyncio.create_task(
+                timer_task(interaction, label, timer_time)
+            )
 
         elif action == "list":
             if not client.timers:
-                embed = discord.Embed(
-                    title="タイマーリスト",
-                    description="現在設定されているタイマーはありません。",
-                    color=0xFFFF00,
+                await interaction.response.send_message(
+                    "現在設定されているタイマーはありません。"
                 )
-                await interaction.response.send_message(embed=embed)
             else:
-                timers_list = "\n".join(
+                timer_list = "\n".join(
                     [
-                        f"{label}: {end_time.strftime('%H:%M:%S')}"
+                        f"{label}: {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
                         for label, end_time in client.timers.items()
                     ]
                 )
-                embed = discord.Embed(
-                    title="タイマーリスト",
-                    description=f"設定されているタイマー:\n{timers_list}",
-                    color=0x00FFFF,
+                await interaction.response.send_message(
+                    f"現在のタイマー:\n{timer_list}"
                 )
-                await interaction.response.send_message(embed=embed)
 
         elif action == "cancel":
-            if not label or label not in client.timers:
+            if not label:
                 raise ValueError("キャンセルするタイマーのラベルを指定してください。")
 
-            del client.timers[label]
-            embed = discord.Embed(
-                title="タイマーキャンセル",
-                description=f"タイマー '{label}' がキャンセルされました。",
-                color=0xFF0000,
-            )
-            await interaction.response.send_message(embed=embed)
-
+            if label in client.timers:
+                client.timers_tasks[label].cancel()
+                del client.timers[label]
+                await interaction.response.send_message(
+                    f"タイマー '{label}' をキャンセルしました。"
+                )
+            else:
+                raise ValueError(f"タイマー '{label}' が見つかりません。")
         else:
-            raise ValueError(
-                "無効な操作です。set, list, cancelのいずれかを指定してください。"
-            )
-
+            raise ValueError("無効なアクションです。")
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
 
-async def timer_end(interaction, label, seconds):
-    await asyncio.sleep(seconds)
-    if label in client.timers:
-        del client.timers[label]
-        embed = discord.Embed(
-            title="タイマー終了",
-            description=f"タイマー '{label}' が終了しました！",
-            color=0xFF0000,
-        )
-        await interaction.followup.send(embed=embed)
+async def timer_task(interaction, label, timer_time):
+    try:
+        await asyncio.sleep(timer_time.total_seconds())
+        await interaction.followup.send(f"タイマー '{label}' が終了しました！")
+    except asyncio.CancelledError:
+        pass  # タイマーがキャンセルされた場合は何もしない
 
 
 # Stopwatch command
 @client.tree.command(name="stopwatch", description="ストップウォッチ機能")
 @app_commands.describe(
-    action="ストップウォッチの操作 (start, lap, stop, reset)",
+    action="ストップウォッチの操作 (start, stop, lap, reset)",
     label="ストップウォッチのラベル",
 )
 async def stopwatch(interaction: discord.Interaction, action: str, label: str):
     try:
         if action == "start":
             if label in client.stopwatches:
-                raise ValueError("既に動作中のストップウォッチがあります。")
-            client.stopwatches[label] = datetime.now()
-            client.laps[label] = []
-            embed = discord.Embed(
-                title="ストップウォッチ開始",
-                description=f"ストップウォッチ '{label}' が開始されました。",
-                color=0x00FF00,
-            )
-            await interaction.response.send_message(embed=embed)
+                raise ValueError("そのラベルのストップウォッチは既に開始されています。")
 
-        elif action == "lap":
-            if label not in client.stopwatches:
-                raise ValueError("動作中のストップウォッチが見つかりません。")
-            lap_time = datetime.now() - client.stopwatches[label]
-            client.laps[label].append(lap_time)
-            embed = discord.Embed(
-                title="ラップタイム",
-                description=f"ストップウォッチ '{label}' のラップタイム: {lap_time}",
-                color=0xFFFF00,
+            client.stopwatches[label] = datetime.now()
+            client.laps[label] = [client.stopwatches[label]]
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' を開始しました。"
             )
-            await interaction.response.send_message(embed=embed)
 
         elif action == "stop":
             if label not in client.stopwatches:
-                raise ValueError("動作中のストップウォッチが見つかりません。")
-            elapsed_time = datetime.now() - client.stopwatches[label]
-            del client.stopwatches[label]
-            embed = discord.Embed(
-                title="ストップウォッチ停止",
-                description=f"ストップウォッチ '{label}' が停止しました。経過時間: {elapsed_time}",
-                color=0xFF0000,
+                raise ValueError("そのラベルのストップウォッチは開始されていません。")
+
+            start_time = client.stopwatches.pop(label)
+            elapsed_time = datetime.now() - start_time
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' が停止しました。経過時間: {elapsed_time}。"
             )
-            await interaction.response.send_message(embed=embed)
+
+        elif action == "lap":
+            if label not in client.stopwatches:
+                raise ValueError("そのラベルのストップウォッチは開始されていません。")
+
+            lap_time = datetime.now()
+            client.laps[label].append(lap_time)
+            lap_number = len(client.laps[label]) - 1
+            elapsed_time = lap_time - client.laps[label][lap_number - 1]
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' のラップ{lap_number}: {elapsed_time}。"
+            )
 
         elif action == "reset":
-            if label in client.stopwatches:
-                del client.stopwatches[label]
-            if label in client.laps:
-                del client.laps[label]
-            embed = discord.Embed(
-                title="ストップウォッチリセット",
-                description=f"ストップウォッチ '{label}' がリセットされました。",
-                color=0x00FFFF,
+            if label not in client.stopwatches:
+                raise ValueError("そのラベルのストップウォッチは開始されていません。")
+
+            client.stopwatches.pop(label)
+            client.laps.pop(label)
+            await interaction.response.send_message(
+                f"ストップウォッチ '{label}' をリセットしました。"
             )
-            await interaction.response.send_message(embed=embed)
 
         else:
-            raise ValueError(
-                "無効な操作です。start, lap, stop, resetのいずれかを指定してください。"
-            )
-
+            raise ValueError("無効なアクションです。")
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
@@ -383,11 +361,11 @@ async def stopwatch(interaction: discord.Interaction, action: str, label: str):
 @client.tree.command(name="pomodoro", description="ポモドーロタイマー機能")
 @app_commands.describe(
     label="ポモドーロタイマーのラベル",
+    action="ポモドーロタイマーの操作 (start, stop, reset)",
     work_time="作業時間（分）",
     short_break="短い休憩時間（分）",
     cycles="ポモドーロの繰り返し回数",
     long_break="長い休憩時間（分）",
-    action="ポモドーロタイマーの操作 (start, stop, reset)",
 )
 async def pomodoro(
     interaction: discord.Interaction,
@@ -406,94 +384,91 @@ async def pomodoro(
                 raise ValueError("既にポモドーロタイマーが動作中です。")
 
             client.pomodoros[user_pomodoro] = {"continue": True, "count": 0}
-            embed = discord.Embed(
-                title="ポモドーロタイマー開始",
-                description=f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。",
-                color=0x00FF00,
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' が開始されました。作業時間: {work_time}分、短い休憩: {short_break}分、繰り返し回数: {cycles}回、長い休憩: {long_break}分。"
             )
-            await interaction.response.send_message(embed=embed)
-
-            while (
-                client.pomodoros[user_pomodoro]["continue"]
-                and client.pomodoros[user_pomodoro]["count"] < 10
-            ):
-                for cycle in range(cycles):
-                    if not client.pomodoros[user_pomodoro]["continue"]:
-                        break
-                    await asyncio.sleep(work_time * 60)
-                    embed = discord.Embed(
-                        title="作業時間終了",
-                        description=f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]",
-                        color=0xFFFF00,
-                    )
-                    await interaction.followup.send(embed=embed)
-                    await asyncio.sleep(short_break * 60)
-                    client.pomodoros[user_pomodoro]["count"] += 1
-
-                if client.pomodoros[user_pomodoro]["count"] < 10:
-                    embed = discord.Embed(
-                        title="ポモドーロサイクル完了",
-                        description=f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)",
-                        color=0x00FFFF,
-                    )
-                    await interaction.followup.send(embed=embed)
-                    await asyncio.sleep(long_break * 60)
-                else:
-                    embed = discord.Embed(
-                        title="ポモドーロサイクル継続確認",
-                        description=f"10回のポモドーロサイクルが完了しました。続けますか？ (はい/いいえ) 1分以内に応答してください。",
-                        color=0x00FFFF,
-                    )
-                    await interaction.followup.send(embed=embed)
-                    try:
-                        response = await client.wait_for(
-                            "message",
-                            check=lambda message: message.author == interaction.user
-                            and message.channel == interaction.channel
-                            and message.content in ["はい", "いいえ"],
-                            timeout=60.0,
-                        )
-                        if response.content == "はい":
-                            client.pomodoros[user_pomodoro]["count"] = 0
-                        else:
-                            client.pomodoros[user_pomodoro]["continue"] = False
-                    except asyncio.TimeoutError:
-                        client.pomodoros[user_pomodoro]["continue"] = False
-
-            del client.pomodoros[user_pomodoro]
-            embed = discord.Embed(
-                title="ポモドーロタイマー終了",
-                description=f"ポモドーロタイマー '{label}' が終了しました。",
-                color=0xFF0000,
+            check_pomodoro.start(
+                interaction,
+                user_pomodoro,
+                label,
+                work_time,
+                short_break,
+                cycles,
+                long_break,
             )
-            await interaction.followup.send(embed=embed)
 
         elif action == "stop":
             if user_pomodoro not in client.pomodoros:
                 raise ValueError("動作中のポモドーロタイマーが見つかりません。")
+            check_pomodoro.stop()
             del client.pomodoros[user_pomodoro]
-            embed = discord.Embed(
-                title="ポモドーロタイマー停止",
-                description=f"ポモドーロタイマー '{label}' が停止されました。",
-                color=0xFF0000,
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' が停止されました。"
             )
-            await interaction.response.send_message(embed=embed)
 
         elif action == "reset":
             if user_pomodoro in client.pomodoros:
+                check_pomodoro.stop()
                 del client.pomodoros[user_pomodoro]
-            embed = discord.Embed(
-                title="ポモドーロタイマーリセット",
-                description=f"ポモドーロタイマー '{label}' がリセットされました。",
-                color=0x00FFFF,
+            await interaction.response.send_message(
+                f"ポモドーロタイマー '{label}' がリセットされました。"
             )
-            await interaction.response.send_message(embed=embed)
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}")
 
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+@tasks.loop(seconds=1)
+async def check_pomodoro(
+    interaction, user_pomodoro, label, work_time, short_break, cycles, long_break
+):
+    try:
+        while (
+            client.pomodoros[user_pomodoro]["continue"]
+            and client.pomodoros[user_pomodoro]["count"] < 10
+        ):
+            for cycle in range(cycles):
+                if not client.pomodoros[user_pomodoro]["continue"]:
+                    break
+                await asyncio.sleep(work_time * 60)
+                await interaction.followup.send(
+                    f"作業時間が終了しました。短い休憩を取ってください。({short_break}分) [{cycle + 1}/{cycles}]"
+                )
+                await asyncio.sleep(short_break * 60)
+                client.pomodoros[user_pomodoro]["count"] += 1
+
+            if client.pomodoros[user_pomodoro]["count"] < 10:
+                await interaction.followup.send(
+                    f"全てのポモドーロサイクルが完了しました。長い休憩を取ってください。({long_break}分)"
+                )
+                await asyncio.sleep(long_break * 60)
+            else:
+                await interaction.followup.send(
+                    f"10回のポモドーロサイクルが完了しました。続けますか？ (はい/いいえ) 1分以内に応答してください。"
+                )
+                try:
+                    response = await client.wait_for(
+                        "message",
+                        check=lambda message: message.author == interaction.user
+                        and message.channel == interaction.channel
+                        and message.content in ["はい", "いいえ"],
+                        timeout=60.0,
+                    )
+                    if response.content == "はい":
+                        client.pomodoros[user_pomodoro]["count"] = 0
+                    else:
+                        client.pomodoros[user_pomodoro]["continue"] = False
+                except asyncio.TimeoutError:
+                    client.pomodoros[user_pomodoro]["continue"] = False
+
+        del client.pomodoros[user_pomodoro]
+        await interaction.followup.send(
+            f"ポモドーロタイマー '{label}' が終了しました。"
+        )
+    except KeyError:
+        # Handle case where the user_pomodoro has been deleted
+        pass
+
 
 keep_alive()
-
-client.run(TOKEN)
+token = os.environ.get("DISCORD_TOKEN")
+client.run(token)
